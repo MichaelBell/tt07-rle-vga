@@ -1,11 +1,11 @@
 # Tiny Tapeout project information
 project:
-  title:        ""      # Project title
-  author:       ""      # Your name
-  discord:      ""      # Your discord username, for communication and automatically assigning you a Tapeout role (optional)
-  description:  ""      # One line description of what your project does
+  title:        "RLE Video Player"      # Project title
+  author:       "Mike Bell"      # Your name
+  discord:      "rebelmike"      # Your discord username, for communication and automatically assigning you a Tapeout role (optional)
+  description:  "Reads run length encoded data from SPI, displays on VGA"      # One line description of what your project does
   language:     "Verilog" # other examples include SystemVerilog, Amaranth, VHDL, etc
-  clock_hz:     0       # Clock frequency in Hz (or 0 if not applicable)
+  clock_hz:     25175000       # Clock frequency in Hz (or 0 if not applicable)
 
   # How many tiles your design occupies? A single tile is about 167x108 uM.
   tiles: "1x1"          # Valid values: 1x1, 1x2, 2x2, 3x2, 4x2, 6x2 or 8x2
@@ -16,13 +16,17 @@ project:
   # List your project's source files here. Source files must be in ./src and you must list each source file separately, one per line:
   source_files:        
     - "project.v"
+    - "rle_video.sv"
+    - "spi.v"
+    - "timing.sv"
+    - "vga.sv"
 
 # The pinout of your project. Leave unused pins blank. DO NOT delete or add any pins.
 pinout:
   # Inputs
-  ui[0]: ""
-  ui[1]: ""
-  ui[2]: ""
+  ui[0]: "SPI latency[0]"
+  ui[1]: "SPI latency[1]"
+  ui[2]: "SPI latency[2]"
   ui[3]: ""
   ui[4]: ""
   ui[5]: ""
@@ -30,24 +34,24 @@ pinout:
   ui[7]: ""
 
   # Outputs
-  uo[0]: ""
-  uo[1]: ""
-  uo[2]: ""
-  uo[3]: ""
-  uo[4]: ""
-  uo[5]: ""
-  uo[6]: ""
-  uo[7]: ""
+  uo[0]: "R[1]"
+  uo[1]: "G[1]"
+  uo[2]: "B[1]"
+  uo[3]: "vsync"
+  uo[4]: "R[0]"
+  uo[5]: "G[0]"
+  uo[6]: "B[0]"
+  uo[7]: "hsync"
 
   # Bidirectional pins
-  uio[0]: ""
-  uio[1]: ""
-  uio[2]: ""
-  uio[3]: ""
-  uio[4]: ""
-  uio[5]: ""
-  uio[6]: ""
-  uio[7]: ""
+  uio[0]: "CS"
+  uio[1]: "MOSI"
+  uio[2]: "MISO"
+  uio[3]: "SCK"
+  uio[4]: "Unused"
+  uio[5]: "Unused"
+  uio[6]: "Unused CS"
+  uio[7]: "Unused CS"
 
 # Do not change!
 yaml_version: 6

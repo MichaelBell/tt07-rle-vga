@@ -9,12 +9,17 @@ You can also include images in this folder and reference them in the markdown. E
 
 ## How it works
 
-Explain how your project works
+A 6bpp run length encoded image or video is read from an SPI flash, and output to 640x480 VGA.
 
 ## How to test
 
-Explain how to use your project
+Create a RLE binary file (docs/scripts to do this TBD) and load onto a flash PMOD (e.g. the [QSPI PMOD](https://github.com/mole99/qspi-pmod)).  Connect that to the bidi pins.
+
+Connect the [Tiny VGA PMOD](https://github.com/mole99/tiny-vga) to the output pins.
+
+Run with a 25MHz clock (or ideally 25.175MHz).
 
 ## External hardware
 
-List external hardware used in your project (e.g. PMOD, LED display, etc), if any
+* SPI flash
+* [Tiny VGA PMOD](https://github.com/mole99/tiny-vga)
