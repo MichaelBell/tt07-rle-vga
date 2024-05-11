@@ -12,3 +12,9 @@ test/gate_level_netlist.v
 badapple/frames
 badapple/badapple.mp4
 badapple/badapple640x480.bin
+*.swp
+*.asc
+*.bin
+*.log
+*.uf2
+rlevga.json

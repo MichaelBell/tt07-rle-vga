@@ -3,22 +3,62 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-`default_nettype none
+`define default_netname none
 
-module tt_um_MichaelBell_rle_vga (
-    input  wire [7:0] ui_in,    // Dedicated inputs
-    output wire [7:0] uo_out,   // Dedicated outputs
-    input  wire [7:0] uio_in,   // IOs: Input path
-    output wire [7:0] uio_out,  // IOs: Output path
-    output wire [7:0] uio_oe,   // IOs: Enable path (active high: 0=input, 1=output)
-    input  wire       ena,      // always 1 when the design is powered, so you can ignore it
-    input  wire       clk,      // clock
-    input  wire       rst_n     // reset_n - low to reset
+module rle_vga_top (
+        input clk,
+        input rst_n,
+
+        inout flash_cs,
+        inout [3:0] sd,
+        inout sck,
+        inout ram_a_cs,
+        inout ram_b_cs,
+
+        input [7:0] ui_in,
+        output [7:0] uo_out
+
 );
+    localparam CLOCK_FREQ = 25_000_000;
 
-  assign uio_oe  = 8'b11001011;
-  assign uio_out[2] = 0;
-  assign uio_out[7:4] = 4'b1100;
+    // Register the reset on the negative edge of clock for safety.
+    // This also allows the option of async reset in the design, which might be preferable in some cases
+    reg rst_reg_n;
+    always @(negedge clk) rst_reg_n <= rst_n;
+
+    // Bidirs are used for SPI interface
+    wire [3:0] qspi_data_in;
+    wire [3:0] qspi_data_out;
+    wire [3:0] qspi_data_oe = 4'b0001;
+    wire       qspi_clk_out;
+    wire       qspi_flash_select;
+    wire       qspi_ram_a_select = 1;
+    wire       qspi_ram_b_select = 1;
+
+    assign qspi_data_out[3:1] = 0;
+    
+    SB_IO #(
+//		.PIN_TYPE(6'b 1101_00),  // Registered in, out and oe
+		.PIN_TYPE(6'b 1010_01),
+		.PULLUP(1'b 0)
+    ) qspi_data [3:0] (
+		.PACKAGE_PIN(sd),
+        .OUTPUT_CLK(clk),
+        .INPUT_CLK(clk),
+		.OUTPUT_ENABLE(qspi_data_oe),
+		.D_OUT_0(qspi_data_out),
+		.D_IN_0(qspi_data_in)
+	);
+    SB_IO #(
+//		.PIN_TYPE(6'b 1001_01),  // Registered out only
+		.PIN_TYPE(6'b 1010_01),
+		.PULLUP(1'b 0)
+    ) qspi_pins [3:0] (
+		.PACKAGE_PIN({flash_cs, sck, ram_a_cs, ram_b_cs}),
+        .OUTPUT_CLK(clk),
+		.OUTPUT_ENABLE({4{rst_n}}),
+		.D_OUT_0({qspi_flash_select, qspi_clk_out, qspi_ram_a_select, qspi_ram_b_select})
+	);
 
   wire vga_blank;
   wire next_frame;
@@ -44,11 +84,11 @@ module tt_um_MichaelBell_rle_vga (
   ) i_spi (
     .clk        (clk),
     .rstn       (rst_n),
-    .spi_select (uio_out[0]),
-    .spi_mosi   (uio_out[1]),
-    .spi_miso   (uio_in[2]),
-    .spi_clk_out(uio_out[3]),
-    .latency    (ui_in[2:0]),
+    .spi_select (qspi_flash_select),
+    .spi_mosi   (qspi_data_out[0]),
+    .spi_miso   (qspi_data_in[1]),
+    .spi_clk_out(qspi_clk_out),
+    .latency    (3'b000),
     .addr_in    (24'h0),
     .start_read (spi_start_read),
     .stop_read  (spi_stop_read),
