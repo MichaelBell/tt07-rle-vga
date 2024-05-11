@@ -29,7 +29,7 @@ module tt_um_example (
     .hsync      (uo_out[7]),
     .vsync      (uo_out[3]),
     .blank      (vga_blank),
-    .next_frame (next_frame)
+    .vsync_pulse(next_frame)
   );
 
   wire [15:0] spi_data;

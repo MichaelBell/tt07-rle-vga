@@ -28,10 +28,10 @@ async def test_sync(dut):
     assert dut.uio_oe.value == 0b11001011
     assert (dut.uio_out.value & 0b11000000) == 0b11000000
 
-    await ClockCycles(dut.clk, 3)
+    await ClockCycles(dut.clk, 1)
 
     for i in range(16):
-        vsync = 0 if i in (11, 12) else 1
+        vsync = 0 if i in (10, 11) else 1
         for j in range(16):
             assert dut.vsync.value == vsync
             assert dut.hsync.value == 1
@@ -77,9 +77,28 @@ async def spi_send_rle(dut, length, colour):
         await FallingEdge(dut.spi_clk)
         data <<= 1
 
-async def send_row_colours(dut, colours):
-    for colour in colours:
-        await spi_send_rle(dut, 640, colour)
+async def generate_colours(dut, frames):
+    for f in range(frames):
+        await expect_read_cmd(dut, 0)
+
+        for colour in range(64):
+            await spi_send_rle(dut, 640, colour)
+
+        colour = 20
+        for i in range(2, 640, 2):
+            await spi_send_rle(dut, i, colour)
+            colour += 1
+            if colour == 64: colour = 0
+            await spi_send_rle(dut, 640-i, colour)
+            colour += 1
+            if colour == 64: colour = 0
+
+        for i in range(480-64-319):
+            for j in range(640//20):
+                await spi_send_rle(dut, 20, j)
+
+        await spi_send_rle(dut, 0x3ff, 0)
+        await RisingEdge(dut.spi_cs)
 
 @cocotb.test()
 async def test_colour(dut):
@@ -98,19 +117,36 @@ async def test_colour(dut):
     await ClockCycles(dut.clk, 10)
     dut.rst_n.value = 1
 
-    await expect_read_cmd(dut, 0)
+    colour_gen = cocotb.start_soon(generate_colours(dut, 3))
 
-    colour_gen = cocotb.start_soon(send_row_colours(dut, [i for i in range(64)]))
+    await ClockCycles(dut.hsync, 1)
 
-    await ClockCycles(dut.hsync, 12+2+33)
+    for i in range(3):
+        await ClockCycles(dut.hsync, 10+2+33)
 
-    for colour in range(64):
-        await ClockCycles(dut.clk, 49)
-        for i in range(640):
-            assert dut.colour.value == colour
-        await ClockCycles(dut.hsync, 1)
+        for colour in range(64):
+            await ClockCycles(dut.clk, 49)
+            for i in range(640):
+                assert dut.colour.value == colour
+                await ClockCycles(dut.clk, 1)
+            await ClockCycles(dut.hsync, 1)
+
+        colour = 20
+        for i in range(2, 640, 2):
+            await ClockCycles(dut.clk, 49)
+            for j in range(640):
+                assert dut.colour.value == (colour if j < i else colour + 1)
+                await ClockCycles(dut.clk, 1)
+            await ClockCycles(dut.hsync, 1)
+            colour += 2
+            if colour == 64: colour = 0
+
+        for i in range(64+319, 480):
+            await ClockCycles(dut.clk, 49)
+            for j in range(640//20):
+                for k in range(20):
+                    assert dut.colour.value == j
+                    await ClockCycles(dut.clk, 1)
+            await ClockCycles(dut.hsync, 1)
 
     await colour_gen
-    await spi_send_rle(dut, 0, 0)
-    await RisingEdge(dut.spi_cs)
-

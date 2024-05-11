@@ -23,8 +23,7 @@ module vga #(
     output logic hsync,     // 1'b1 if in hsync region
     output logic vsync,     // 1'b1 if in vsync region
     output logic blank,     // 1'b1 if in blank region
-    output logic next_row,  // 1'b1 if end of row
-    output logic next_frame // 1'b1 if end of frame
+    output logic vsync_pulse // 1'b1 for one clock in vsync
 );
 
     localparam HTOTAL = WIDTH + HFRONT + HSYNC + HBACK;
@@ -37,6 +36,8 @@ module vga #(
     
     logic hblank;
     logic vblank;
+    logic next_row;
+    logic next_frame;
      
     // Horizontal timing
     timing #(
@@ -75,5 +76,6 @@ module vga #(
     );
 
     assign blank = hblank || vblank;
+    assign vsync_pulse = next_row && (y_pos == -VBACK - VSYNC);
 
 endmodule

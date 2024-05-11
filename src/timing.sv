@@ -34,7 +34,7 @@ module timing #(
     // Counter logic
     always_ff @(posedge clk) begin
         if (!reset_n) begin
-            counter <= RESOLUTION - 2;
+            counter <= -FRONT_PORCH - SYNC_PULSE - BACK_PORCH;
         end else begin
             if (enable) begin
                 counter <= counter + 1;
