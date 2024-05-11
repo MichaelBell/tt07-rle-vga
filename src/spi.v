@@ -48,11 +48,14 @@ module spi_flash_controller #(parameter DATA_WIDTH_BYTES=4, parameter ADDR_BITS=
     localparam DATA_WIDTH_BITS = DATA_WIDTH_BYTES * 8;
     localparam BITS_REM_BITS = $clog2(`max(DATA_WIDTH_BITS,ADDR_BITS));
 
-    localparam FSM_IDLE = 1;
-    localparam FSM_CMD  = 5;
-    localparam FSM_ADDR = 6;
+    localparam FSM_IDLE = 3;
+    localparam FSM_CMD  = 4;
+    localparam FSM_ADDR = 5;
+    localparam FSM_DUMMY = 6;
     localparam FSM_DATA = 7;
-    localparam FSM_HOLD = 0;
+    localparam FSM_LAT1 = 0;
+    localparam FSM_LAT2 = 1;
+    localparam FSM_HOLD = 2;
 
     reg [2:0] fsm_state;
     reg [3:0] spi_miso_buf_n;
@@ -62,7 +65,7 @@ module spi_flash_controller #(parameter DATA_WIDTH_BYTES=4, parameter ADDR_BITS=
     reg [BITS_REM_BITS-1:0] bits_remaining;
 
     assign data_out = data;
-    assign busy = fsm_state[2];
+    assign busy = !fsm_state[1] || fsm_state[2];
 
     always @(posedge clk) begin
         if (!rstn) begin
@@ -77,14 +80,17 @@ module spi_flash_controller #(parameter DATA_WIDTH_BYTES=4, parameter ADDR_BITS=
             end else if (fsm_state == FSM_HOLD) begin
                 if (stop_read) fsm_state <= FSM_IDLE;
                 if (continue_read) begin
-                    fsm_state <= FSM_DATA;
-                    bits_remaining <= DATA_WIDTH_BITS-1;
+                    fsm_state <= FSM_DUMMY;
+                    bits_remaining <= 3-1;
                 end
             end else begin
                 if (bits_remaining == 0) begin
                     fsm_state <= fsm_state + 1;
-                    if (fsm_state == FSM_CMD)       bits_remaining <= ADDR_BITS-1;
-                    else if (fsm_state == FSM_ADDR) bits_remaining <= DATA_WIDTH_BITS-1;
+                    if (fsm_state == FSM_CMD)        bits_remaining <= ADDR_BITS-1;
+                    else if (fsm_state == FSM_ADDR)  bits_remaining <= 3-1;
+                    else if (fsm_state == FSM_DUMMY) bits_remaining <= DATA_WIDTH_BITS-4;
+                    else if (fsm_state == FSM_LAT1)  bits_remaining <= 0;
+                    else if (fsm_state == FSM_LAT2)  bits_remaining <= 0;
                 end else begin
                     bits_remaining <= bits_remaining - 1;
                 end
@@ -108,10 +114,10 @@ module spi_flash_controller #(parameter DATA_WIDTH_BYTES=4, parameter ADDR_BITS=
         spi_miso_buf_p <= {spi_miso_buf_p[2:0], spi_miso};
     end
 
-    wire spi_miso_in = latency[0] ? spi_miso_buf_p[latency[2:1]] : spi_miso_buf_n[latency[2:1]];
+    wire spi_miso_in = latency[0] ? spi_miso_buf_p[2'b01 - latency[2:1]] : spi_miso_buf_n[2'b10 - latency[2:1]];
 
     always @(posedge clk) begin
-        if (fsm_state == FSM_DATA) begin
+        if (busy) begin
             data <= {data[DATA_WIDTH_BITS-2:0], spi_miso_in};
         end
     end

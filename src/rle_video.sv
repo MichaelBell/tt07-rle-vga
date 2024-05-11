@@ -19,17 +19,19 @@ module rle_video (
 
     logic [9:0] run_length;
     logic start;
+    logic read_next_r;
 
     assign stop_data = (run_length == 10'h3ff);
+    assign read_next = read_next_r && !stop_data;
 
     always_ff @(posedge clk) begin
         if (!rstn) begin
-            read_next <= 0;
+            read_next_r <= 0;
             run_length <= 10'h3ff;
             start <= 0;
             colour <= 0;
         end else begin
-            read_next <= 0;
+            read_next_r <= 0;
 
             if (run_length == 10'h3ff) begin
                 run_length <= 1;
@@ -38,12 +40,12 @@ module rle_video (
             end
             else if (start) begin
                 if (run_length[0]) begin
-                    read_next <= 1;
+                    read_next_r <= 1;
                     run_length[0] <= 0;
                 end else if (next_frame && data_ready) begin
                     run_length <= data[15:6];
                     colour <= data[5:0];
-                    read_next <= 1;
+                    read_next_r <= 1;
                     start <= 0;
                 end
             end
@@ -51,13 +53,13 @@ module rle_video (
                 if (data_ready) begin
                     run_length <= data[15:6];
                     colour <= data[5:0];
-                    read_next <= 1;
+                    read_next_r <= 1;
                 end
             end else if (next_pixel) begin
                 if (run_length == 1 && data_ready) begin
                     run_length <= data[15:6];
                     colour <= data[5:0];
-                    read_next <= 1;
+                    read_next_r <= 1;
                 end
                 else begin
                     run_length <= run_length - 1;

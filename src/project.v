@@ -34,9 +34,9 @@ module tt_um_MichaelBell_rle_vga (
 
   wire [15:0] spi_data;
   wire spi_busy;
-  reg spi_start_read;
+  wire spi_start_read;
   wire spi_stop_read;
-  reg spi_continue_read;
+  wire spi_continue_read;
 
   spi_flash_controller #(
     .DATA_WIDTH_BYTES(2),
@@ -77,22 +77,18 @@ module tt_um_MichaelBell_rle_vga (
   always @(posedge clk) begin
     if (!rst_n) begin
       spi_started <= 0;
-      spi_start_read <= 0;
-      spi_continue_read <= 0;
     end else begin
-      spi_start_read <= 0;
-      spi_continue_read <= 0;
 
       if (spi_stop_read) 
         spi_started <= 0;
       else if (read_next) begin
-        if (spi_started) spi_continue_read <= 1;
-        else spi_start_read <= 1;
-
         spi_started <= 1;
       end
     end
   end
+
+  assign spi_continue_read = read_next && spi_started;
+  assign spi_start_read = read_next && !spi_started;
 
   assign uo_out[0] = vga_blank ? 1'b0 : video_colour[5];
   assign uo_out[1] = vga_blank ? 1'b0 : video_colour[3];
