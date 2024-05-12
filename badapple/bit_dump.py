@@ -8,10 +8,12 @@ out_file = open("badapple640x480.bin", "wb")
 
 max_span_len = 8
 
-for i in range(1,3000):
+for i in range(1,6957):
     img = Image.open("frames/badapple%04d.png" % (i,)).resize((640,480))
 
     data = img.load()
+    last_spans = []
+    repeat_count = 0
 
     for y in range(0,480):
         spans = []
@@ -54,8 +56,18 @@ for i in range(1,3000):
 
             shortest_span, shortest_idx = min((a, i) for (i, a) in enumerate([s[0] for s in spans]))
 
-        for span in spans:
-            out_file.write(struct.pack('>H', (span[0] << 6) + span[1]))
+        if spans == last_spans:
+            repeat_count += 1
+        else:
+            if repeat_count != 0:
+                out_file.write(struct.pack('>H', 0xf800 + repeat_count))
+            repeat_count = 0
+            for span in spans:
+                out_file.write(struct.pack('>H', (span[0] << 6) + span[1]))
+            last_spans = spans
+
+    if repeat_count != 0:
+        out_file.write(struct.pack('>H', 0xf800 + repeat_count))
     print("Frame %d" % (i,))
 
 out_file.write(struct.pack('>H', (0x3ff << 6)))

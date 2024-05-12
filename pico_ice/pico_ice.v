@@ -60,6 +60,7 @@ module rle_vga_top (
 
   wire vga_blank;
   wire next_frame;
+  wire next_row;
 
   vga i_vga (
     .clk        (clk),
@@ -67,7 +68,8 @@ module rle_vga_top (
     .hsync      (uo_out[7]),
     .vsync      (uo_out[3]),
     .blank      (vga_blank),
-    .vsync_pulse(next_frame)
+    .vsync_pulse(next_frame),
+    .hsync_pulse(next_row)
   );
 
   wire [15:0] spi_data;
@@ -88,7 +90,7 @@ module rle_vga_top (
     .spi_data_oe(qspi_data_oe),
     .spi_select (qspi_flash_select),
     .spi_clk_out(qspi_clk_out),
-    .latency    (3'b000),
+    .latency    (3'b001),
     .addr_in    ({addr, 1'b0}),
     .start_read (spi_start_read),
     .stop_read  (spi_stop_read),
@@ -102,9 +104,10 @@ module rle_vga_top (
   wire read_next;
   wire [5:0] video_colour;
 
-  reg [23:1] addr_saved;
-  wire save_addr;
-  wire load_addr;
+  reg [23:1] addr_saved0;
+  reg [23:1] addr_saved1;
+  wire [1:0] save_addr;
+  wire [1:0] load_addr;
   wire clear_addr;
 
   rle_video i_video (
@@ -115,6 +118,7 @@ module rle_vga_top (
     .data_ready (spi_data_ready),
     .data       (spi_data),
     .next_frame (next_frame),
+    .next_row   (next_row),
     .next_pixel (!vga_blank),
     .colour     (video_colour),
     .save_addr  (save_addr),
@@ -138,10 +142,13 @@ module rle_vga_top (
   always @(posedge clk) begin
     if (!rst_n || clear_addr) begin
       addr <= 0;
-      addr_saved <= 0;
+      addr_saved0 <= 0;
+      addr_saved1 <= 0;
     end else begin
-      if (save_addr) addr_saved <= addr - 1;
-      else if (load_addr) addr <= addr_saved;
+      if (save_addr[0]) addr_saved0 <= addr - 1;
+      if (save_addr[1]) addr_saved1 <= addr - 1;
+      if (load_addr[0]) addr <= addr_saved0;
+      else if (load_addr[1]) addr <= addr_saved1;
       else if (spi_started && read_next) addr <= addr + 1;
     end
   end

@@ -30,6 +30,7 @@ module tt_um_MichaelBell_rle_vga (
 
   wire vga_blank;
   wire next_frame;
+  wire next_row;
 
   vga i_vga (
     .clk        (clk),
@@ -37,7 +38,8 @@ module tt_um_MichaelBell_rle_vga (
     .hsync      (uo_out[7]),
     .vsync      (uo_out[3]),
     .blank      (vga_blank),
-    .vsync_pulse(next_frame)
+    .vsync_pulse(next_frame),
+    .hsync_pulse(next_row)
   );
 
   wire [15:0] spi_data;
@@ -72,9 +74,10 @@ module tt_um_MichaelBell_rle_vga (
   wire read_next;
   wire [5:0] video_colour;
 
-  reg [23:1] addr_saved;
-  wire save_addr;
-  wire load_addr;
+  reg [23:1] addr_saved0;
+  reg [23:1] addr_saved1;
+  wire [1:0] save_addr;
+  wire [1:0] load_addr;
   wire clear_addr;
 
   rle_video i_video (
@@ -85,6 +88,7 @@ module tt_um_MichaelBell_rle_vga (
     .data_ready (spi_data_ready),
     .data       (spi_data),
     .next_frame (next_frame),
+    .next_row   (next_row),
     .next_pixel (!vga_blank),
     .colour     (video_colour),
     .save_addr  (save_addr),
@@ -108,10 +112,13 @@ module tt_um_MichaelBell_rle_vga (
   always @(posedge clk) begin
     if (!rst_n || clear_addr) begin
       addr <= 0;
-      addr_saved <= 0;
+      addr_saved0 <= 0;
+      addr_saved1 <= 0;
     end else begin
-      if (save_addr) addr_saved <= addr - 1;
-      else if (load_addr) addr <= addr_saved;
+      if (save_addr[0]) addr_saved0 <= addr - 1;
+      if (save_addr[1]) addr_saved1 <= addr - 1;
+      if (load_addr[0]) addr <= addr_saved0;
+      else if (load_addr[1]) addr <= addr_saved1;
       else if (spi_started && read_next) addr <= addr + 1;
     end
   end

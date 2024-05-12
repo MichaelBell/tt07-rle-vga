@@ -75,9 +75,12 @@ async def expect_read_cmd(dut, addr):
 
     await FallingEdge(dut.spi_clk)
 
-async def spi_send_rle(dut, length, colour, latency):
+def spi_send_rle(dut, length, colour, latency):
     data = (length << 6) + colour
 
+    return spi_send_data(dut, data, latency)
+
+async def spi_send_data(dut, data, latency):
     assert dut.spi_cs.value == 0
 
     for j in range(latency//2):
@@ -108,9 +111,11 @@ async def spi_send_rle(dut, length, colour, latency):
 async def generate_colours(dut, frames, latency=0):
     for f in range(frames):
         await expect_read_cmd(dut, 0)
+        addr = 0
 
         for colour in range(64):
             await spi_send_rle(dut, 640, colour, latency)
+        addr += 2 * 64
 
         colour = 20
         for i in range(2, 640, 2):
@@ -120,10 +125,16 @@ async def generate_colours(dut, frames, latency=0):
             await spi_send_rle(dut, 640-i, colour, latency)
             colour += 1
             if colour == 64: colour = 0
+        addr += 4 * 319
 
         for i in range(480-64-319):
             for j in range(640//8):
                 await spi_send_rle(dut, 8, j & 0x3f, latency)
+            await spi_send_data(dut, 0xf800 + 480-64-319-1, latency)
+            
+            if (i != 480-64-319-1):
+                await RisingEdge(dut.spi_cs)
+                await expect_read_cmd(dut, addr)
 
         await spi_send_rle(dut, 0x3ff, 0, latency)
         await RisingEdge(dut.spi_cs)
@@ -150,10 +161,16 @@ async def generate_colours_continuous(dut, frames, latency=0):
             if colour == 64: colour = 0
         next_addr += 4 * 319
 
+        rep_addr = next_addr
         for i in range(480-64-319):
             for j in range(640//8):
                 await spi_send_rle(dut, 8, j & 0x3f, latency)
-        next_addr += (480-64-319) * (640//8) * 2
+            await spi_send_data(dut, 0xf800 + 480-64-319-1, latency)
+            
+            if (i != 480-64-319-1):
+                await RisingEdge(dut.spi_cs)
+                await expect_read_cmd(dut, rep_addr)
+        next_addr += (640//8 + 1) * 2
 
         if (f & 1) == 0:
             await spi_send_rle(dut, 640, 0, latency)
