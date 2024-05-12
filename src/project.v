@@ -47,6 +47,7 @@ module tt_um_MichaelBell_rle_vga (
   wire spi_start_read;
   wire spi_stop_read;
   wire spi_continue_read;
+  wire spi_buf_empty;
   reg [23:1] addr;
 
   spi_flash_controller #(
@@ -64,13 +65,28 @@ module tt_um_MichaelBell_rle_vga (
     .addr_in    ({addr, 1'b0}),
     .start_read (spi_start_read),
     .stop_read  (spi_stop_read),
-    .continue_read(spi_continue_read),
+    .continue_read(spi_continue_read || spi_buf_empty),
     .data_out   (spi_data),
     .busy       (spi_busy)
   );
 
+  wire [15:0] spi_buf_data;
+
+  spi_buffer #( 
+    .DATA_WIDTH_BYTES(2) 
+  ) i_spi_buf (
+    .clk        (clk),
+    .rstn       (rst_n),
+    .start_read (spi_start_read),
+    .continue_read(spi_continue_read),
+    .data_in    (spi_data),
+    .spi_busy   (spi_busy),
+    .data_out   (spi_buf_data),
+    .empty      (spi_buf_empty)
+  );
+
   reg spi_started;
-  wire spi_data_ready = spi_started && !spi_busy && !spi_start_read && !spi_continue_read;
+  wire spi_data_ready = spi_started && (!spi_busy || !spi_buf_empty) && !spi_start_read && !spi_continue_read;
   wire read_next;
   wire [5:0] video_colour;
 
@@ -86,7 +102,7 @@ module tt_um_MichaelBell_rle_vga (
     .read_next  (read_next),
     .stop_data  (spi_stop_read),
     .data_ready (spi_data_ready),
-    .data       (spi_data),
+    .data       (spi_buf_data),
     .next_frame (next_frame),
     .next_row   (next_row),
     .next_pixel (!vga_blank),

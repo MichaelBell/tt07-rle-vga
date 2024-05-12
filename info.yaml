@@ -3,7 +3,7 @@ project:
   title:        "RLE Video Player"      # Project title
   author:       "Mike Bell"      # Your name
   discord:      "rebelmike"      # Your discord username, for communication and automatically assigning you a Tapeout role (optional)
-  description:  "Reads run length encoded data from SPI, displays on VGA"      # One line description of what your project does
+  description:  "Reads run length encoded data from QSPI flash, displays on VGA"      # One line description of what your project does
   language:     "Verilog" # other examples include SystemVerilog, Amaranth, VHDL, etc
   clock_hz:     25175000       # Clock frequency in Hz (or 0 if not applicable)
 
@@ -20,6 +20,7 @@ project:
     - "spi.v"
     - "timing.sv"
     - "vga.sv"
+    - "spi_buffer.sv"
 
 # The pinout of your project. Leave unused pins blank. DO NOT delete or add any pins.
 pinout:
@@ -45,11 +46,11 @@ pinout:
 
   # Bidirectional pins
   uio[0]: "CS"
-  uio[1]: "MOSI"
-  uio[2]: "MISO"
+  uio[1]: "SD0"
+  uio[2]: "SD1"
   uio[3]: "SCK"
-  uio[4]: "Unused"
-  uio[5]: "Unused"
+  uio[4]: "SD2"
+  uio[5]: "SD3"
   uio[6]: "Unused CS"
   uio[7]: "Unused CS"
 

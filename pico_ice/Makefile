@@ -2,7 +2,7 @@
 PROJ      = rlevga
 
 # Files
-FILES = pico_ice.v ../src/rle_video.sv ../src/spi.v ../src/timing.sv ../src/vga.sv
+FILES = pico_ice.v ../src/rle_video.sv ../src/spi.v ../src/timing.sv ../src/vga.sv ../src/spi_buffer.sv
 
 .PHONY: pico_ice clean burn
 

@@ -114,8 +114,10 @@ async def generate_colours(dut, frames, latency=0):
         addr = 0
 
         for colour in range(64):
-            await spi_send_rle(dut, 640, colour, latency)
-        addr += 2 * 64
+            await spi_send_rle(dut, 320, colour, latency)
+            await spi_send_rle(dut, 2, 1, latency)
+            await spi_send_rle(dut, 318, colour, latency)
+        addr += 6 * 64
 
         colour = 20
         for i in range(2, 640, 2):
@@ -204,7 +206,13 @@ async def test_colour(dut):
 
         for colour in range(64):
             await ClockCycles(dut.clk, 49)
-            for i in range(640):
+            for i in range(320):
+                assert dut.colour.value == colour
+                await ClockCycles(dut.clk, 1)
+            for i in range(2):
+                assert dut.colour.value == 1
+                await ClockCycles(dut.clk, 1)
+            for i in range(318):
                 assert dut.colour.value == colour
                 await ClockCycles(dut.clk, 1)
             await ClockCycles(dut.hsync, 1)
@@ -307,7 +315,13 @@ async def test_latency(dut):
 
             for colour in range(64):
                 await ClockCycles(dut.clk, 49)
-                for i in range(640):
+                for i in range(320):
+                    assert dut.colour.value == colour
+                    await ClockCycles(dut.clk, 1)
+                for i in range(2):
+                    assert dut.colour.value == 1
+                    await ClockCycles(dut.clk, 1)
+                for i in range(318):
                     assert dut.colour.value == colour
                     await ClockCycles(dut.clk, 1)
                 await ClockCycles(dut.hsync, 1)

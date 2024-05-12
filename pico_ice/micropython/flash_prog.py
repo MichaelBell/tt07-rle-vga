@@ -49,6 +49,7 @@ def program(filename):
     CMD_READ_SR1 = 0x05
     CMD_WEN = 0x06
     CMD_SECTOR_ERASE = 0x20
+    CMD_BLOCK_ERASE = 0xD8
     CMD_ID  = 0x90
     CMD_LEAVE_CM = 0xFF
 
@@ -66,8 +67,9 @@ def program(filename):
             if num_bytes == 0:
                 break
             
-            flash_cmd([CMD_WEN])
-            flash_cmd([CMD_SECTOR_ERASE, sector >> 4, (sector & 0xF) << 4, 0])
+            if (sector & 0xF) == 0:
+                flash_cmd([CMD_WEN])
+                flash_cmd([CMD_BLOCK_ERASE, sector >> 4, 0, 0])
 
             while flash_cmd([CMD_READ_SR1], 0, 1)[0] & 1:
                 print("*", end="")

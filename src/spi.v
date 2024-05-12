@@ -76,6 +76,8 @@ module spi_flash_controller #(parameter DATA_WIDTH_BYTES=4, parameter ADDR_BITS=
             fsm_state <= FSM_IDLE;
             bits_remaining <= 0;
             spi_data_oe <= 4'b0000;
+        end else if (stop_read) begin
+            fsm_state <= FSM_IDLE;
         end else begin
             if (fsm_state == FSM_IDLE) begin
                 if (start_read) begin
@@ -84,7 +86,6 @@ module spi_flash_controller #(parameter DATA_WIDTH_BYTES=4, parameter ADDR_BITS=
                     bits_remaining <= 8-1;
                 end
             end else if (fsm_state == FSM_HOLD) begin
-                if (stop_read) fsm_state <= FSM_IDLE;
                 if (continue_read) begin
                     fsm_state <= FSM_DUMMY;
                     bits_remaining <= 3-1;
