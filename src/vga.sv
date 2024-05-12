@@ -36,15 +36,16 @@ module vga #(
     
     logic hblank;
     logic vblank;
+    logic vblank_w;
     logic next_row;
     logic next_frame;
      
     // Horizontal timing
     timing #(
         .RESOLUTION     (WIDTH),
-        .FRONT_PORCH    (HFRONT),
+        .FRONT_PORCH    (HFRONT-1),
         .SYNC_PULSE     (HSYNC),
-        .BACK_PORCH     (HBACK),
+        .BACK_PORCH     (HBACK+1),
         .TOTAL          (HTOTAL),
         .POLARITY       (1'b0)
     ) timing_hor (
@@ -67,15 +68,17 @@ module vga #(
         .POLARITY       (1'b0)
     ) timing_ver (
         .clk        (clk),
-        .enable     (next_row),
+        .enable     (x_pos == WIDTH - 2),
         .reset_n    (reset_n),
         .sync       (vsync),
-        .blank      (vblank),
+        .blank      (vblank_w),
         .next       (next_frame),
         .counter    (y_pos)
     );
 
     assign blank = hblank || vblank;
     assign vsync_pulse = next_row && (y_pos == -VBACK - VSYNC);
+
+    always_ff @(posedge clk) vblank <= vblank_w;
 
 endmodule

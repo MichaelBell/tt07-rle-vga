@@ -152,7 +152,7 @@ async def generate_colours_continuous(dut, frames, latency=0):
 
         for i in range(480-64-319):
             for j in range(640//8):
-                await spi_send_rle(dut, 20, j & 0x3f, latency)
+                await spi_send_rle(dut, 8, j & 0x3f, latency)
         next_addr += (480-64-319) * (640//8) * 2
 
         if (f & 1) == 0:
