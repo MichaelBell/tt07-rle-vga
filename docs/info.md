@@ -12,6 +12,7 @@ You can also include images in this folder and reference them in the markdown. E
 A 6bpp run length encoded image or video is read from a W25Q128JV or similar QSPI flash, and output to 640x480 VGA.
 
 This is perfect for displaying the Bad Apple music video.
+
 ![A frame from Bad Apple, rendered by the FPGA version of this design](badapple.jpg)
 
 ### Run Length Encoding
