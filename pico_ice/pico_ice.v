@@ -77,6 +77,7 @@ module rle_vga_top (
   reg spi_start_read;
   wire spi_stop_read;
   reg spi_continue_read;
+  reg [23:1] addr;
 
   spi_flash_controller #(
     .DATA_WIDTH_BYTES(2),
@@ -89,7 +90,7 @@ module rle_vga_top (
     .spi_miso   (qspi_data_in[1]),
     .spi_clk_out(qspi_clk_out),
     .latency    (3'b000),
-    .addr_in    (24'h0),
+    .addr_in    ({addr, 1'b0}),
     .start_read (spi_start_read),
     .stop_read  (spi_stop_read),
     .continue_read(spi_continue_read),
@@ -102,6 +103,11 @@ module rle_vga_top (
   wire read_next;
   wire [5:0] video_colour;
 
+  reg [23:1] addr_saved;
+  wire save_addr;
+  wire load_addr;
+  wire clear_addr;
+
   rle_video i_video (
     .clk        (clk),
     .rstn       (rst_n),
@@ -111,28 +117,38 @@ module rle_vga_top (
     .data       (spi_data),
     .next_frame (next_frame),
     .next_pixel (!vga_blank),
-    .colour     (video_colour)
+    .colour     (video_colour),
+    .save_addr  (save_addr),
+    .load_addr  (load_addr),
+    .clear_addr (clear_addr)
   );
 
   always @(posedge clk) begin
     if (!rst_n) begin
       spi_started <= 0;
-      spi_start_read <= 0;
-      spi_continue_read <= 0;
     end else begin
-      spi_start_read <= 0;
-      spi_continue_read <= 0;
 
       if (spi_stop_read) 
         spi_started <= 0;
       else if (read_next) begin
-        if (spi_started) spi_continue_read <= 1;
-        else spi_start_read <= 1;
-
         spi_started <= 1;
       end
     end
   end
+
+  always @(posedge clk) begin
+    if (!rst_n || clear_addr) begin
+      addr <= 0;
+      addr_saved <= 0;
+    end else begin
+      if (save_addr) addr_saved <= addr - 1;
+      else if (load_addr) addr <= addr_saved;
+      else if (spi_started && read_next) addr <= addr + 1;
+    end
+  end
+
+  assign spi_continue_read = read_next && spi_started;
+  assign spi_start_read = read_next && !spi_started;
 
   assign uo_out[0] = vga_blank ? 1'b0 : video_colour[5];
   assign uo_out[1] = vga_blank ? 1'b0 : video_colour[3];

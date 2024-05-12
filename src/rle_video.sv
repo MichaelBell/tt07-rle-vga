@@ -14,15 +14,23 @@ module rle_video (
 
     input  logic       next_frame,
     input  logic       next_pixel,
-    output logic [5:0] colour
+    output logic [5:0] colour,
+
+    output logic       save_addr,
+    output logic       load_addr,
+    output logic       clear_addr
 );
 
     logic [9:0] run_length;
     logic start;
     logic read_next_r;
+    logic frame_counter;
 
-    assign stop_data = (run_length == 10'h3ff);
+    assign stop_data = (run_length == 10'h3ff) || (!frame_counter && next_frame);
     assign read_next = read_next_r && !stop_data;
+
+    assign save_addr = next_frame && frame_counter;
+    assign load_addr = next_frame && !frame_counter;
 
     always_ff @(posedge clk) begin
         if (!rstn) begin
@@ -30,6 +38,8 @@ module rle_video (
             run_length <= 10'h3ff;
             start <= 0;
             colour <= 0;
+            frame_counter <= 1;
+            clear_addr <= 0;
         end else begin
             read_next_r <= 0;
 
@@ -37,32 +47,44 @@ module rle_video (
                 run_length <= 1;
                 start <= 1;
                 colour <= 0;
+                frame_counter <= 1;
             end
             else if (start) begin
                 if (run_length[0]) begin
                     read_next_r <= 1;
+                    clear_addr <= 1;
                     run_length[0] <= 0;
                 end else if (next_frame && data_ready) begin
                     run_length <= data[15:6];
                     colour <= data[5:0];
+                    clear_addr <= 0;
                     read_next_r <= 1;
                     start <= 0;
+                    frame_counter <= 0;
                 end
             end
-            else if (run_length == 0) begin
-                if (data_ready) begin
-                    run_length <= data[15:6];
-                    colour <= data[5:0];
-                    read_next_r <= 1;
-                end
-            end else if (next_pixel) begin
-                if (run_length == 1 && data_ready) begin
-                    run_length <= data[15:6];
-                    colour <= data[5:0];
-                    read_next_r <= 1;
-                end
-                else begin
-                    run_length <= run_length - 1;
+            else begin
+                if (next_frame) begin
+                    frame_counter <= ~frame_counter;
+                    if (!frame_counter) begin
+                        run_length <= 0;
+                        read_next_r <= 1;
+                    end
+                end else if (run_length == 0) begin
+                    if (data_ready) begin
+                        run_length <= data[15:6];
+                        colour <= data[5:0];
+                        read_next_r <= 1;
+                    end
+                end else if (next_pixel) begin
+                    if (run_length == 1 && data_ready) begin
+                        run_length <= data[15:6];
+                        colour <= data[5:0];
+                        read_next_r <= 1;
+                    end
+                    else begin
+                        run_length <= run_length - 1;
+                    end
                 end
             end
         end

@@ -37,6 +37,7 @@ module tt_um_MichaelBell_rle_vga (
   wire spi_start_read;
   wire spi_stop_read;
   wire spi_continue_read;
+  reg [23:1] addr;
 
   spi_flash_controller #(
     .DATA_WIDTH_BYTES(2),
@@ -49,7 +50,7 @@ module tt_um_MichaelBell_rle_vga (
     .spi_miso   (uio_in[2]),
     .spi_clk_out(uio_out[3]),
     .latency    (ui_in[2:0]),
-    .addr_in    (24'h0),
+    .addr_in    ({addr, 1'b0}),
     .start_read (spi_start_read),
     .stop_read  (spi_stop_read),
     .continue_read(spi_continue_read),
@@ -62,6 +63,11 @@ module tt_um_MichaelBell_rle_vga (
   wire read_next;
   wire [5:0] video_colour;
 
+  reg [23:1] addr_saved;
+  wire save_addr;
+  wire load_addr;
+  wire clear_addr;
+
   rle_video i_video (
     .clk        (clk),
     .rstn       (rst_n),
@@ -71,7 +77,10 @@ module tt_um_MichaelBell_rle_vga (
     .data       (spi_data),
     .next_frame (next_frame),
     .next_pixel (!vga_blank),
-    .colour     (video_colour)
+    .colour     (video_colour),
+    .save_addr  (save_addr),
+    .load_addr  (load_addr),
+    .clear_addr (clear_addr)
   );
 
   always @(posedge clk) begin
@@ -84,6 +93,17 @@ module tt_um_MichaelBell_rle_vga (
       else if (read_next) begin
         spi_started <= 1;
       end
+    end
+  end
+
+  always @(posedge clk) begin
+    if (!rst_n || clear_addr) begin
+      addr <= 0;
+      addr_saved <= 0;
+    end else begin
+      if (save_addr) addr_saved <= addr - 1;
+      else if (load_addr) addr <= addr_saved;
+      else if (spi_started && read_next) addr <= addr + 1;
     end
   end
 
