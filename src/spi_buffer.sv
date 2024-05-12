@@ -11,6 +11,7 @@ module spi_buffer #(parameter DATA_WIDTH_BYTES=4) (
     input  logic                          continue_read,
     input  logic [DATA_WIDTH_BYTES*8-1:0] data_in,
     input  logic                          spi_busy,
+    input  logic                          prev_empty,
     output logic [DATA_WIDTH_BYTES*8-1:0] data_out,
     output logic                          empty
 );
@@ -26,7 +27,7 @@ module spi_buffer #(parameter DATA_WIDTH_BYTES=4) (
             if (start_read) begin
                 empty <= 1;
             end else if (continue_read && !empty) begin
-                if (!spi_busy) fifo <= data_in;
+                if (!spi_busy || !prev_empty) fifo <= data_in;
                 else empty <= 1;
             end else if (!continue_read && !spi_busy && empty) begin
                 empty <= 0;

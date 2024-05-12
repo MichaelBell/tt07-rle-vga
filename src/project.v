@@ -47,6 +47,7 @@ module tt_um_MichaelBell_rle_vga (
   wire spi_start_read;
   wire spi_stop_read;
   wire spi_continue_read;
+  wire spi_buf_empty0;
   wire spi_buf_empty;
   reg [23:1] addr;
 
@@ -65,9 +66,25 @@ module tt_um_MichaelBell_rle_vga (
     .addr_in    ({addr, 1'b0}),
     .start_read (spi_start_read),
     .stop_read  (spi_stop_read),
-    .continue_read(spi_continue_read || spi_buf_empty),
+    .continue_read(spi_continue_read || spi_buf_empty || spi_buf_empty0),
     .data_out   (spi_data),
     .busy       (spi_busy)
+  );
+
+  wire [15:0] spi_buf_data0;
+
+  spi_buffer #( 
+    .DATA_WIDTH_BYTES(2) 
+  ) i_spi_buf0 (
+    .clk        (clk),
+    .rstn       (rst_n),
+    .start_read (spi_start_read),
+    .continue_read(spi_continue_read || spi_buf_empty),
+    .data_in    (spi_data),
+    .spi_busy   (spi_busy),
+    .prev_empty (1'b1),
+    .data_out   (spi_buf_data0),
+    .empty      (spi_buf_empty0)
   );
 
   wire [15:0] spi_buf_data;
@@ -79,19 +96,20 @@ module tt_um_MichaelBell_rle_vga (
     .rstn       (rst_n),
     .start_read (spi_start_read),
     .continue_read(spi_continue_read),
-    .data_in    (spi_data),
+    .data_in    (spi_buf_data0),
     .spi_busy   (spi_busy),
+    .prev_empty (spi_buf_empty0),
     .data_out   (spi_buf_data),
     .empty      (spi_buf_empty)
   );
 
   reg spi_started;
-  wire spi_data_ready = spi_started && (!spi_busy || !spi_buf_empty) && !spi_start_read && !spi_continue_read;
+  wire spi_data_ready = spi_started && (!spi_busy || !spi_buf_empty || !spi_buf_empty0) && !spi_start_read && !spi_continue_read;
   wire read_next;
   wire [5:0] video_colour;
 
   reg [23:1] addr_saved0;
-  reg [23:1] addr_saved1;
+  reg [8:1] addr_offset1;
   wire [1:0] save_addr;
   wire [1:0] load_addr;
   wire clear_addr;
@@ -129,12 +147,14 @@ module tt_um_MichaelBell_rle_vga (
     if (!rst_n || clear_addr) begin
       addr <= 0;
       addr_saved0 <= 0;
-      addr_saved1 <= 0;
+      addr_offset1 <= 0;
     end else begin
       if (save_addr[0]) addr_saved0 <= addr - 1;
-      if (save_addr[1]) addr_saved1 <= addr - 1;
+      if (save_addr[1]) addr_offset1 <= 8'h1;
+      else if (spi_started && read_next) addr_offset1 <= addr_offset1 + 1;
+
       if (load_addr[0]) addr <= addr_saved0;
-      else if (load_addr[1]) addr <= addr_saved1;
+      else if (load_addr[1]) addr <= addr - {15'h0, addr_offset1};
       else if (spi_started && read_next) addr <= addr + 1;
     end
   end

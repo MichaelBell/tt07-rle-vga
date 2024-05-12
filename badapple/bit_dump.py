@@ -43,8 +43,9 @@ colour_shift_changes = {
 
 max_span_len = 8
 data_len = 0
+colour_shift = TWO
 
-for i in range(1,3320):
+for i in range(1,6957):
     img = Image.open("frames/badapple%04d.png" % (i,)).resize((640,480))
 
     data = img.load()
@@ -81,25 +82,22 @@ for i in range(1,3320):
         else:
             spans[-1][0] += 1
 
-        if len(spans) > 2:
+        if len(spans) > 3:
             while True:
-                shortest_two_spans = 640
+                shortest_spans = 640
                 shortest_idx = 0
-                for idx, s in enumerate(spans):
-                    if idx == 0:
-                        slen = s[0] + spans[1][0]
-                    elif idx == len(spans) - 1:
-                        slen = s[0] + spans[-2][0]
-                    else:
-                        slen = s[0] + min(spans[idx-1][0], spans[idx+1][0])
+                for idx, s in enumerate(spans[1:-1]):
+                    slen = s[0] + spans[idx][0] + spans[idx+2][0]
 
-                    if slen < shortest_two_spans:
-                        shortest_idx = idx
-                        shortest_span = s[0]
-                        shortest_two_spans = slen
+                    if slen < shortest_spans:
+                        shortest_idx = idx + 1
+                        shortest_spans = slen
             
-                if shortest_two_spans >= 2 * max_span_len:
+                if shortest_spans >= 3 * max_span_len:
                     break
+
+                shortest_span, idx = min((a, i) for (i, a) in enumerate([s[0] for s in spans[shortest_idx-1:shortest_idx+2]]))
+                shortest_idx += idx - 1
 
                 #print(shortest_span, shortest_idx, spans)
                 if shortest_idx == 0: 
@@ -119,7 +117,12 @@ for i in range(1,3320):
                         spans[shortest_idx-1][0] += spans[shortest_idx][0]
                         del spans[shortest_idx]
 
-                if len(spans) <= 2:
+                if sum([s[0] for s in spans]) != 640:
+                    #print(spans)
+                    print("Error")
+                    sys.exit(0)
+
+                if len(spans) <= 3:
                     break
 
         if spans == last_spans:
@@ -138,5 +141,9 @@ for i in range(1,3320):
         out_file.write(struct.pack('>H', 0xf800 + repeat_count))
         data_len += 2
     print("Frame %d, len %.2fMB" % (i, data_len / (1024 * 1024)))
+
+    if data_len > 16 * 1024 * 1024 - 32 * 1024:
+        print("Terminating early")
+        break
 
 out_file.write(struct.pack('>H', (0x3ff << 6)))
