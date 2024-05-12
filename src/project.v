@@ -16,9 +16,17 @@ module tt_um_MichaelBell_rle_vga (
     input  wire       rst_n     // reset_n - low to reset
 );
 
-  assign uio_oe  = 8'b11001011;
-  assign uio_out[2] = 0;
-  assign uio_out[7:4] = 4'b1100;
+  // Bidirs are used for SPI interface
+  wire [3:0] qspi_data_in = {uio_in[5:4], uio_in[2:1]};
+  wire [3:0] qspi_data_out;
+  wire [3:0] qspi_data_oe;
+  wire       qspi_clk_out;
+  wire       qspi_flash_select;
+  wire       qspi_ram_a_select = 1'b1;
+  wire       qspi_ram_b_select = 1'b1;
+  assign uio_out = {qspi_ram_b_select, qspi_ram_a_select, qspi_data_out[3:2], 
+                    qspi_clk_out, qspi_data_out[1:0], qspi_flash_select};
+  assign uio_oe = rst_n ? {2'b11, qspi_data_oe[3:2], 1'b1, qspi_data_oe[1:0], 1'b1} : 8'h00;  
 
   wire vga_blank;
   wire next_frame;
@@ -45,10 +53,11 @@ module tt_um_MichaelBell_rle_vga (
   ) i_spi (
     .clk        (clk),
     .rstn       (rst_n),
-    .spi_select (uio_out[0]),
-    .spi_mosi   (uio_out[1]),
-    .spi_miso   (uio_in[2]),
-    .spi_clk_out(uio_out[3]),
+    .spi_data_in(qspi_data_in),
+    .spi_data_out(qspi_data_out),
+    .spi_data_oe(qspi_data_oe),
+    .spi_select (qspi_flash_select),
+    .spi_clk_out(qspi_clk_out),
     .latency    (ui_in[2:0]),
     .addr_in    ({addr, 1'b0}),
     .start_read (spi_start_read),

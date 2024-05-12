@@ -29,14 +29,12 @@ module rle_vga_top (
     // Bidirs are used for SPI interface
     wire [3:0] qspi_data_in;
     wire [3:0] qspi_data_out;
-    wire [3:0] qspi_data_oe = 4'b0001;
+    wire [3:0] qspi_data_oe;
     wire       qspi_clk_out;
     wire       qspi_flash_select;
     wire       qspi_ram_a_select = 1;
     wire       qspi_ram_b_select = 1;
 
-    assign qspi_data_out[3:1] = 0;
-    
     SB_IO #(
 //		.PIN_TYPE(6'b 1101_00),  // Registered in, out and oe
 		.PIN_TYPE(6'b 1010_01),
@@ -85,9 +83,10 @@ module rle_vga_top (
   ) i_spi (
     .clk        (clk),
     .rstn       (rst_n),
+    .spi_data_in(qspi_data_in),
+    .spi_data_out(qspi_data_out),
+    .spi_data_oe(qspi_data_oe),
     .spi_select (qspi_flash_select),
-    .spi_mosi   (qspi_data_out[0]),
-    .spi_miso   (qspi_data_in[1]),
     .spi_clk_out(qspi_clk_out),
     .latency    (3'b000),
     .addr_in    ({addr, 1'b0}),

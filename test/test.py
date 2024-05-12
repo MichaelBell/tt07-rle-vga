@@ -20,12 +20,15 @@ async def test_sync(dut):
     dut.ui_in.value = 0
     dut.spi_miso.value = 0
     dut.rst_n.value = 0
-    await ClockCycles(dut.clk, 10)
+    await ClockCycles(dut.clk, 2)
+    assert dut.uio_oe.value == 0
+    await ClockCycles(dut.clk, 2)
     dut.rst_n.value = 1
 
     dut._log.info("Test sync")
 
-    assert dut.uio_oe.value == 0b11001011
+    await Timer(1, "ns")
+    assert dut.uio_oe.value == 0b11001001
 
     await ClockCycles(dut.clk, 1)
 
@@ -50,18 +53,25 @@ async def expect_read_cmd(dut, addr):
 
     assert dut.spi_mosi.value == 0
     
-    cmd = 3
+    cmd = 0x6B
     for i in range(8):
         await ClockCycles(dut.spi_clk, 1)
         assert dut.spi_mosi.value == (1 if cmd & 0x80 else 0)
         assert dut.spi_cs.value == 0
+        assert dut.uio_oe.value == 0b11001011
         cmd <<= 1
 
     for i in range(24):
         await ClockCycles(dut.spi_clk, 1)
         assert dut.spi_mosi.value == (1 if addr & 0x800000 else 0)
         assert dut.spi_cs.value == 0
+        assert dut.uio_oe.value == 0b11001011
         addr <<= 1
+
+    for i in range(8):
+        await ClockCycles(dut.spi_clk, 1)
+        assert dut.spi_cs.value == 0
+        assert dut.uio_oe.value == 0b11001001
 
     await FallingEdge(dut.spi_clk)
 
@@ -72,25 +82,28 @@ async def spi_send_rle(dut, length, colour, latency):
 
     for j in range(latency//2):
         await FallingEdge(dut.spi_clk)
+        assert dut.uio_oe.value == 0b11001001
 
 
-    for i in range(16 - latency//2):
+    for i in range(4 - latency//2):
         if latency & 1:
             await RisingEdge(dut.spi_clk)
         await Timer(1, "ns")
-        dut.spi_miso.value = (1 if data & 0x8000 else 0)
+        dut.spi_miso.value = (data >> 12) & 0xF
+        assert dut.uio_oe.value == 0b11001001
         assert dut.spi_cs.value == 0
         await FallingEdge(dut.spi_clk)
-        data <<= 1
+        data <<= 4
 
     if latency & 1:
         await Timer(20, "ns")
     await Timer(1, "ns")
 
     for j in range(latency//2):
-        dut.spi_miso.value = (1 if data & 0x8000 else 0)
+        dut.spi_miso.value = (data >> 12) & 0xF
+        assert dut.uio_oe.value == 0b11001001
         await Timer(40, "ns")
-        data <<= 1
+        data <<= 4
 
 async def generate_colours(dut, frames, latency=0):
     for f in range(frames):
@@ -109,8 +122,8 @@ async def generate_colours(dut, frames, latency=0):
             if colour == 64: colour = 0
 
         for i in range(480-64-319):
-            for j in range(640//20):
-                await spi_send_rle(dut, 20, j, latency)
+            for j in range(640//8):
+                await spi_send_rle(dut, 8, j & 0x3f, latency)
 
         await spi_send_rle(dut, 0x3ff, 0, latency)
         await RisingEdge(dut.spi_cs)
@@ -138,9 +151,9 @@ async def generate_colours_continuous(dut, frames, latency=0):
         next_addr += 4 * 319
 
         for i in range(480-64-319):
-            for j in range(640//20):
-                await spi_send_rle(dut, 20, j, latency)
-        next_addr += (480-64-319) * (640//20) * 2
+            for j in range(640//8):
+                await spi_send_rle(dut, 20, j & 0x3f, latency)
+        next_addr += (480-64-319) * (640//8) * 2
 
         if (f & 1) == 0:
             await spi_send_rle(dut, 640, 0, latency)
@@ -191,9 +204,9 @@ async def test_colour(dut):
 
         for i in range(64+319, 480):
             await ClockCycles(dut.clk, 49)
-            for j in range(640//20):
-                for k in range(20):
-                    assert dut.colour.value == j
+            for j in range(640//8):
+                for k in range(8):
+                    assert dut.colour.value == j & 0x3f
                     await ClockCycles(dut.clk, 1)
             await ClockCycles(dut.hsync, 1)
 
@@ -242,9 +255,9 @@ async def test_repeat(dut):
 
         for i in range(64+319, 480):
             await ClockCycles(dut.clk, 49)
-            for j in range(640//20):
-                for k in range(20):
-                    assert dut.colour.value == j
+            for j in range(640//8):
+                for k in range(8):
+                    assert dut.colour.value == j & 0x3f
                     await ClockCycles(dut.clk, 1)
             await ClockCycles(dut.hsync, 1)
 
@@ -294,9 +307,9 @@ async def test_latency(dut):
 
             for i in range(64+319, 480):
                 await ClockCycles(dut.clk, 49)
-                for j in range(640//20):
-                    for k in range(20):
-                        assert dut.colour.value == j
+                for j in range(640//8):
+                    for k in range(8):
+                        assert dut.colour.value == j & 0x3f
                         await ClockCycles(dut.clk, 1)
                 await ClockCycles(dut.hsync, 1)
 

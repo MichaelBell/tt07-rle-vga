@@ -6,7 +6,9 @@ from PIL import Image
 
 out_file = open("badapple640x480.bin", "wb")
 
-for i in range(1,5500):
+max_span_len = 8
+
+for i in range(1,3000):
     img = Image.open("frames/badapple%04d.png" % (i,)).resize((640,480))
 
     data = img.load()
@@ -31,7 +33,7 @@ for i in range(1,5500):
 
         shortest_span, shortest_idx = min((a, i) for (i, a) in enumerate([s[0] for s in spans]))
         
-        while shortest_span < 20:
+        while shortest_span < max_span_len:
             #print(shortest_span, shortest_idx, spans)
             if shortest_idx == 0: 
                 spans[1][0] += shortest_span

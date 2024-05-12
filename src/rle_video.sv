@@ -48,6 +48,7 @@ module rle_video (
                 start <= 1;
                 colour <= 0;
                 frame_counter <= 1;
+                clear_addr <= 1;
             end
             else if (start) begin
                 if (run_length[0]) begin
