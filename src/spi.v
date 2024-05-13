@@ -59,7 +59,7 @@ module spi_flash_controller #(parameter DATA_WIDTH_BYTES=4, parameter ADDR_BITS=
     localparam FSM_HOLD = 2;
 
     reg [2:0] fsm_state;
-    reg [11:0] spi_miso_buf_n;
+    reg [7:0] spi_miso_buf_n;
     reg [7:0] spi_miso_buf_p;
     reg [ADDR_BITS-1:0]       addr;
     reg [DATA_WIDTH_BITS-1:0] data;
@@ -116,7 +116,7 @@ module spi_flash_controller #(parameter DATA_WIDTH_BYTES=4, parameter ADDR_BITS=
     end
 
     always @(negedge clk) begin
-        spi_miso_buf_n <= {spi_miso_buf_n[7:0], spi_data_in};
+        spi_miso_buf_n <= {spi_miso_buf_n[3:0], spi_data_in};
     end
 
     always @(posedge clk) begin
@@ -130,8 +130,7 @@ module spi_flash_controller #(parameter DATA_WIDTH_BYTES=4, parameter ADDR_BITS=
             else spi_miso_in = spi_miso_buf_p[7:4];
         end else begin
             if (latency[2]) spi_miso_in = spi_miso_buf_n[3:0];
-            else if (latency[1]) spi_miso_in = spi_miso_buf_n[7:4];
-            else spi_miso_in = spi_miso_buf_n[11:8];
+            else spi_miso_in = spi_miso_buf_n[7:4];
         end
     end
 

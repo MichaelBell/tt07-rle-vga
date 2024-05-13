@@ -108,7 +108,7 @@ async def spi_send_data(dut, data, latency):
         await Timer(40, "ns")
         data <<= 4
 
-async def generate_colours(dut, frames, latency=0):
+async def generate_colours(dut, frames, latency=1):
     for f in range(frames):
         await expect_read_cmd(dut, 0)
         addr = 0
@@ -142,7 +142,7 @@ async def generate_colours(dut, frames, latency=0):
         await spi_send_rle(dut, 0x3ff, 0, latency)
         await RisingEdge(dut.spi_cs)
 
-async def generate_colours_continuous(dut, frames, latency=0, repeat=True):
+async def generate_colours_continuous(dut, frames, latency=1, repeat=True):
     addr = 0
     for f in range(frames):
         if f == 0 or ((f & 1) == 1 and repeat):
@@ -310,7 +310,7 @@ async def test_no_repeat(dut):
     await ClockCycles(dut.clk, 10)
     dut.rst_n.value = 1
 
-    colour_gen = cocotb.start_soon(generate_colours_continuous(dut, 3, 0, False))
+    colour_gen = cocotb.start_soon(generate_colours_continuous(dut, 3, 2, False))
 
     await ClockCycles(dut.hsync, 1)
 

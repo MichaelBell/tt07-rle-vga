@@ -33,7 +33,7 @@ Create a RLE binary file (docs/scripts to do this TBD) and load onto the flash. 
 
 Connect the [Tiny VGA PMOD](https://github.com/mole99/tiny-vga) to the output pins.
 
-Inputs 2-0 set the read latency for the SPI in half clock cycles, it's likely that will need to be set to 2 (set input 1 high and inputs 0 and 2 low).  This latency depends on the total round trip time through the mux and out to the flash and back.  Valid values are 0 to 4.
+Inputs 2-0 set the read latency for the SPI in half clock cycles, it's likely that will need to be set to 2 (set input 1 high and inputs 0 and 2 low).  This latency depends on the total round trip time through the mux and out to the flash and back.  Valid values are 1 to 4.
 
 Run with a 25MHz clock (or ideally 25.175MHz).
 
