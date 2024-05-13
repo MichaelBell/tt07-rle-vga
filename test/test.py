@@ -142,10 +142,10 @@ async def generate_colours(dut, frames, latency=0):
         await spi_send_rle(dut, 0x3ff, 0, latency)
         await RisingEdge(dut.spi_cs)
 
-async def generate_colours_continuous(dut, frames, latency=0):
+async def generate_colours_continuous(dut, frames, latency=0, repeat=True):
     addr = 0
     for f in range(frames):
-        if f == 0 or (f & 1) == 1:
+        if f == 0 or ((f & 1) == 1 and repeat):
             dut._log.info(f"Start data at: {addr:06x}")
             await expect_read_cmd(dut, addr)
         next_addr = addr
@@ -175,7 +175,7 @@ async def generate_colours_continuous(dut, frames, latency=0):
                 await expect_read_cmd(dut, rep_addr)
         next_addr += (640//8 + 1) * 2
 
-        if (f & 1) == 0:
+        if ((f & 1) == 0 and repeat):
             await spi_send_rle(dut, 640, 0, latency)
             await RisingEdge(dut.spi_cs)
         else:
@@ -257,12 +257,64 @@ async def test_repeat(dut):
     dut.rst_n.value = 0
     await ClockCycles(dut.clk, 10)
     dut.rst_n.value = 1
+    dut.ui_in.value = 8
 
     colour_gen = cocotb.start_soon(generate_colours_continuous(dut, 5))
 
     await ClockCycles(dut.hsync, 1)
 
     for i in range(5):
+        await ClockCycles(dut.hsync, 10+2+33)
+
+        for colour in range(64):
+            await ClockCycles(dut.clk, 49)
+            for i in range(640):
+                assert dut.colour.value == colour
+                await ClockCycles(dut.clk, 1)
+            await ClockCycles(dut.hsync, 1)
+
+        colour = 20
+        for i in range(2, 640, 2):
+            await ClockCycles(dut.clk, 49)
+            for j in range(640):
+                assert dut.colour.value == (colour if j < i else colour + 1)
+                await ClockCycles(dut.clk, 1)
+            await ClockCycles(dut.hsync, 1)
+            colour += 2
+            if colour == 64: colour = 0
+
+        for i in range(64+319, 480):
+            await ClockCycles(dut.clk, 49)
+            for j in range(640//8):
+                for k in range(8):
+                    assert dut.colour.value == j & 0x3f
+                    await ClockCycles(dut.clk, 1)
+            await ClockCycles(dut.hsync, 1)
+
+    await colour_gen
+
+@cocotb.test()
+async def test_no_repeat(dut):
+    dut._log.info("Start")
+
+    # Set the clock period to 40 ns (25 MHz)
+    clock = Clock(dut.clk, 40, units="ns")
+    cocotb.start_soon(clock.start())
+
+    # Reset
+    dut._log.info("Reset")
+    dut.ena.value = 1
+    dut.ui_in.value = 0
+    dut.spi_miso.value = 0
+    dut.rst_n.value = 0
+    await ClockCycles(dut.clk, 10)
+    dut.rst_n.value = 1
+
+    colour_gen = cocotb.start_soon(generate_colours_continuous(dut, 3, 0, False))
+
+    await ClockCycles(dut.hsync, 1)
+
+    for i in range(3):
         await ClockCycles(dut.hsync, 10+2+33)
 
         for colour in range(64):
