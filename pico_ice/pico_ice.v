@@ -155,6 +155,7 @@ module rle_vga_top (
     .next_row   (next_row),
     .next_pixel (!vga_blank),
     .colour     (video_colour),
+    .half_frame_rate(1'b1),
     .save_addr  (save_addr),
     .load_addr  (load_addr),
     .clear_addr (clear_addr)

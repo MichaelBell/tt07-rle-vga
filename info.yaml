@@ -28,7 +28,7 @@ pinout:
   ui[0]: "SPI latency[0]"
   ui[1]: "SPI latency[1]"
   ui[2]: "SPI latency[2]"
-  ui[3]: ""
+  ui[3]: "30Hz select"
   ui[4]: ""
   ui[5]: ""
   ui[6]: ""

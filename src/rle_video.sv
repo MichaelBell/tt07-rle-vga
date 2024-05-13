@@ -17,6 +17,8 @@ module rle_video (
     input  logic       next_pixel,
     output logic [5:0] colour,
 
+    input  logic       half_frame_rate,
+
     output logic [1:0] save_addr,
     output logic [1:0] load_addr,
     output logic       clear_addr
@@ -67,11 +69,11 @@ module rle_video (
                     clear_addr <= 0;
                     read_next_r <= 1;
                     start <= 0;
-                    frame_counter <= 0;
+                    frame_counter <= !half_frame_rate;
                 end
             end
             else begin
-                if (next_frame) begin
+                if (next_frame && half_frame_rate) begin
                     frame_counter <= ~frame_counter;
                     if (!frame_counter) begin
                         run_length <= 0;

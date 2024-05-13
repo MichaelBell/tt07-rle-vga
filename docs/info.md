@@ -23,7 +23,7 @@ A row can be repeated by encoding a word `0xF800` + number of repeats at the end
 
 A run must be at least 2 pixels, and any group of 3 consecutive runs within a row must be at least 24 pixels, otherwise the data buffer will empty.  This could definitely be improved!
 
-Each frame is repeated once, so playback is 30Hz instead of 60Hz.  I might make that configurable.
+If input 3 is high, each frame is repeated once, so playback is 30Hz instead of 60Hz.
 
 The data is read starting at address 0.  The special word `0xFFC0` causes the player to stop and restart from address 0 at the beginning of the next frame, restarting the video.  This could also be used to display a still image.
 

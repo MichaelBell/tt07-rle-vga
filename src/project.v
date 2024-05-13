@@ -125,6 +125,7 @@ module tt_um_MichaelBell_rle_vga (
     .next_row   (next_row),
     .next_pixel (!vga_blank),
     .colour     (video_colour),
+    .half_frame_rate(ui_in[3]),
     .save_addr  (save_addr),
     .load_addr  (load_addr),
     .clear_addr (clear_addr)
