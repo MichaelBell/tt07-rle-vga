@@ -4,6 +4,14 @@
 
 - [Read the documentation for project](docs/info.md)
 
+## Running the video player with the TT07 demo board
+
+1. Connect QSPI and TinyVGA Pmods to your demo board
+2. Use the [TT Flasher](https://tinytapeout.github.io/tinytapeout-flasher/) and program "Run Length Encoded Bad Apple Video (TT07)" to the flash (this will take a few minutes)
+3. Use the [TT Commander](https://commander.tinytapeout.com/) to select the "RLE Video Player" project
+4. On the Interact tab set ui_in 0 and 3 to on, leave all the other inputs off.
+5. Reset the project to start the video!
+
 ## What is Tiny Tapeout?
 
 Tiny Tapeout is an educational project that aims to make it easier and cheaper than ever to get your digital and analog designs manufactured on a real chip.
