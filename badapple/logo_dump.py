@@ -17,7 +17,7 @@ for y in range(479):
     spans = []
     span_len = 80
     span_colour = 0
-    for x in range(640):
+    for x in range(480):
         colour = 0
         if data[x, y][0] > 170:   colour = colour | 0b110000
         elif data[x, y][0] > 100: colour = colour | 0b100000
@@ -25,9 +25,9 @@ for y in range(479):
         if data[x, y][1] > 170:   colour = colour | 0b001100
         elif data[x, y][1] > 100: colour = colour | 0b001000
         elif data[x, y][1] > 45:  colour = colour | 0b000100
-        if data[x, y][1] > 170:   colour = colour | 0b000011
-        elif data[x, y][1] > 100: colour = colour | 0b000010
-        elif data[x, y][1] > 45:  colour = colour | 0b000001
+        if data[x, y][2] > 170:   colour = colour | 0b000011
+        elif data[x, y][2] > 100: colour = colour | 0b000010
+        elif data[x, y][2] > 45:  colour = colour | 0b000001
 
         if colour != span_colour:
             if span_len > 1:

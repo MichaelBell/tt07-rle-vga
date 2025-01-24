@@ -19,3 +19,5 @@ badapple/badapple640x480.bin
 *.uf2
 rlevga.json
 ttlogo*.png
+bunny/frames
+bunny/*.mov
